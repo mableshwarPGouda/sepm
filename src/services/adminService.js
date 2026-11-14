@@ -1,9 +1,11 @@
 // src/services/adminService.js
-// Handles Worker Verification Applications, Saved Workers, Platform Commission, and Live Work Monitoring
+// Cloud-synchronized Worker Applications, Verification, and Admin Operations
+import { supabase } from './supabaseClient';
 
 const APPLICATIONS_KEY = 'whap_worker_applications_v1';
 const SAVED_WORKERS_KEY = 'whap_saved_workers_v1';
 const PROFILE_EXT_KEY = 'whap_profiles_extended_v1';
+const CONFIG_REGISTRY_KEY = 'whap_worker_apps_registry';
 
 // Seed default approved status for the demo workers
 const DEFAULT_APPLICATIONS = [
@@ -57,15 +59,51 @@ function saveApplications(apps) {
     localStorage.setItem(APPLICATIONS_KEY, JSON.stringify(apps));
     window.dispatchEvent(new Event('whap_worker_apps_updated'));
   } catch (err) {
-    console.warn('Could not save worker applications:', err);
+    console.warn('Could not save worker applications to localStorage:', err);
   }
 }
 
 export const adminService = {
   // --------------------------------------------------------------------------
-  // Worker Applications Management
+  // Worker Applications Management (Syncs to Supabase Cloud)
   // --------------------------------------------------------------------------
   getApplications: () => {
+    return getStoredApplications();
+  },
+
+  /**
+   * Async fetch applications directly from Supabase Cloud
+   * Merges cloud registry with local cache
+   */
+  fetchApplicationsCloud: async () => {
+    try {
+      const { data, error } = await supabase
+        .from('config')
+        .select('*')
+        .eq('key', CONFIG_REGISTRY_KEY)
+        .maybeSingle();
+
+      if (!error && data?.value) {
+        try {
+          const cloudApps = JSON.parse(data.value);
+          if (Array.isArray(cloudApps) && cloudApps.length > 0) {
+            const local = getStoredApplications();
+            // Merge by unique id
+            const map = new Map();
+            DEFAULT_APPLICATIONS.forEach((a) => map.set(a.id, a));
+            local.forEach((a) => map.set(a.id, a));
+            cloudApps.forEach((a) => map.set(a.id, a));
+            const merged = Array.from(map.values());
+            saveApplications(merged);
+            return merged;
+          }
+        } catch (jsonErr) {
+          console.warn('Error parsing cloud applications:', jsonErr);
+        }
+      }
+    } catch (err) {
+      console.warn('Could not fetch applications from Supabase:', err);
+    }
     return getStoredApplications();
   },
 
@@ -98,7 +136,7 @@ export const adminService = {
     };
   },
 
-  submitWorkerApplication: ({
+  submitWorkerApplication: async ({
     userId,
     userEmail,
     name,
@@ -137,15 +175,64 @@ export const adminService = {
       updated = [newApp, ...apps];
     }
 
+    // 1. Save locally for instant UI update
     saveApplications(updated);
+
+    // 2. Sync to Supabase Cloud user_metadata
+    try {
+      await supabase.auth.updateUser({
+        data: {
+          worker_application: {
+            id: newApp.id,
+            status: 'PENDING',
+            name: newApp.name,
+            phone: newApp.phone,
+            rollNumber: newApp.rollNumber,
+            skills: newApp.skills,
+            experience: newApp.experience,
+            appliedAt: newApp.appliedAt,
+          },
+        },
+      });
+    } catch (metaErr) {
+      console.warn('Could not sync application to user_metadata:', metaErr);
+    }
+
+    // 3. Sync to Supabase Cloud central registry if admin access is available
+    try {
+      const { data: configRow } = await supabase
+        .from('config')
+        .select('*')
+        .eq('key', CONFIG_REGISTRY_KEY)
+        .maybeSingle();
+
+      let cloudList = [];
+      if (configRow?.value) {
+        try {
+          cloudList = JSON.parse(configRow.value);
+        } catch {}
+      }
+      const mergedCloud = [newApp, ...cloudList.filter((x) => x.userId !== newApp.userId)];
+      await supabase
+        .from('config')
+        .upsert({
+          key: CONFIG_REGISTRY_KEY,
+          value: JSON.stringify(mergedCloud),
+          description: 'Central Worker Applications Store',
+        });
+    } catch (configErr) {
+      // Non-admin users cannot write to config directly; their record is saved in user_metadata & local
+    }
+
     return newApp;
   },
 
-  reviewApplication: ({ applicationId, status, workerId = null, reason = '' }) => {
+  reviewApplication: async ({ applicationId, status, workerId = null, reason = '' }) => {
     const apps = getStoredApplications();
+    const generatedId = workerId || `WKR-${Math.floor(1000 + Math.random() * 9000)}`;
+
     const updated = apps.map((app) => {
       if (app.id === applicationId) {
-        const generatedId = workerId || `WKR-${Math.floor(1000 + Math.random() * 9000)}`;
         return {
           ...app,
           status,
@@ -159,7 +246,33 @@ export const adminService = {
     });
 
     saveApplications(updated);
-    return updated.find((a) => a.id === applicationId);
+
+    const targetApp = updated.find((a) => a.id === applicationId);
+
+    // Sync to Supabase Cloud central config registry
+    try {
+      await supabase.from('config').upsert({
+        key: CONFIG_REGISTRY_KEY,
+        value: JSON.stringify(updated),
+        description: 'Central Worker Applications Store',
+      });
+    } catch (cErr) {
+      console.warn('Could not update config registry in Supabase:', cErr);
+    }
+
+    // If approved, update worker role in public.profiles table
+    if (status === 'APPROVED' && targetApp?.userId) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({ role: 'WORKER' })
+          .eq('id', targetApp.userId);
+      } catch (pErr) {
+        console.warn('Could not promote profile role in Supabase:', pErr);
+      }
+    }
+
+    return targetApp;
   },
 
   // --------------------------------------------------------------------------

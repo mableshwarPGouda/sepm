@@ -47,13 +47,14 @@ export function AdminDisputesScreen() {
 
   const loadAdminData = async () => {
     try {
-      const [disputeData, taskData] = await Promise.all([
+      const [disputeData, taskData, cloudApps] = await Promise.all([
         api.getDisputedTasks().catch(() => []),
         api.getAllTasksAdmin().catch(() => []),
+        adminService.fetchApplicationsCloud().catch(() => adminService.getApplications()),
       ]);
       setDisputes(disputeData || []);
       setAllTasks(taskData || []);
-      setApplications(adminService.getApplications());
+      setApplications(cloudApps || adminService.getApplications());
     } catch (err) {
       console.warn('Admin data load warning:', err);
     } finally {
@@ -115,10 +116,11 @@ export function AdminDisputesScreen() {
   };
 
   // Worker Application Review
-  const handleReviewApplication = (applicationId, status, applicantName) => {
+  const handleReviewApplication = async (applicationId, status, applicantName) => {
     try {
-      adminService.reviewApplication({ applicationId, status });
-      setApplications(adminService.getApplications());
+      await adminService.reviewApplication({ applicationId, status });
+      const updated = await adminService.fetchApplicationsCloud();
+      setApplications(updated);
       setToast({
         message: `${applicantName} marked as ${status}! Worker ID generated.`,
         type: 'success',

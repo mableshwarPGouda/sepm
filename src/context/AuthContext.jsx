@@ -80,9 +80,14 @@ export function AuthProvider({ children }) {
         }
       }
 
-      // 3. Worker Verification Status
+      // 3. Worker Verification Status (checks local + fetches cloud)
       const wStatus = adminService.getWorkerStatus(userId, userEmail);
       setWorkerStatusState(wStatus);
+      // Background sync with cloud registry
+      adminService.fetchApplicationsCloud().then(() => {
+        const updatedStatus = adminService.getWorkerStatus(userId, userEmail);
+        setWorkerStatusState(updatedStatus);
+      }).catch(() => {});
     } catch (err) {
       console.error('Error loading profile or wallet:', err);
     }
