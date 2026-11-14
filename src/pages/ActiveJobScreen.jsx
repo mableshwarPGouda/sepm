@@ -15,6 +15,9 @@ import {
   ArrowRight,
   Star,
   ShieldAlert,
+  Zap,
+  Clock,
+  Sparkles,
 } from 'lucide-react';
 
 const getCategoryIcon = (category) => {
@@ -74,13 +77,13 @@ export function ActiveJobScreen() {
       if (res.success) {
         // Trigger celebratory confetti
         confetti({
-          particleCount: 100,
-          spread: 70,
+          particleCount: 120,
+          spread: 80,
           origin: { y: 0.6 },
         });
 
         setCompletedPayout(res);
-        setToast({ message: 'Job verified! Payout credited to your wallet.', type: 'success' });
+        setToast({ message: 'Job verified! Escrow payout credited to your wallet.', type: 'success' });
         await refreshUserData();
       } else {
         setHasOtpError(true);
@@ -130,8 +133,8 @@ export function ActiveJobScreen() {
   if (loading) {
     return (
       <div className="min-h-[50vh] flex flex-col items-center justify-center p-6 text-slate-500">
-        <div className="w-8 h-8 border-3 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
-        <p className="mt-3 text-xs font-medium">Checking active assignments...</p>
+        <div className="w-8 h-8 border-3 border-slate-900 border-t-transparent rounded-full animate-spin"></div>
+        <p className="mt-3 text-xs font-bold text-slate-700">Checking active assignment...</p>
       </div>
     );
   }
@@ -139,50 +142,55 @@ export function ActiveJobScreen() {
   // Case 1: Job completed successfully just now
   if (completedPayout) {
     return (
-      <div className="max-w-md mx-auto px-4 py-8 text-center space-y-5">
-        <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto text-emerald-600 shadow-sm">
-          <CheckCircle2 className="w-10 h-10" />
+      <div className="max-w-md mx-auto px-4 py-8 text-center space-y-6 animate-fade-in">
+        <div className="w-20 h-20 bg-emerald-100 rounded-3xl flex items-center justify-center mx-auto text-emerald-600 shadow-lg shadow-emerald-500/20">
+          <CheckCircle2 className="w-12 h-12 stroke-[2.5]" />
         </div>
-        <h1 className="text-xl font-extrabold text-slate-900">Job Successfully Completed!</h1>
-        <p className="text-xs text-slate-500">
-          The 4-digit completion code was validated and escrow released.
-        </p>
+        <div className="space-y-1">
+          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+            Escrow Released
+          </span>
+          <h1 className="text-2xl font-black text-slate-950 mt-2">Chore Complete!</h1>
+          <p className="text-xs text-slate-500 max-w-xs mx-auto">
+            The 4-digit code was validated in-person. Funds have been credited to your simulated earnings wallet.
+          </p>
+        </div>
 
-        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs space-y-1.5 max-w-xs mx-auto">
-          <div className="flex justify-between text-emerald-900">
-            <span>Total Agreed Price:</span>
-            <span className="font-bold">₹{job?.agreed_price}</span>
+        <div className="p-5 bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-200 rounded-3xl text-xs space-y-2.5 max-w-xs mx-auto shadow-xs">
+          <div className="flex justify-between text-emerald-950">
+            <span>Agreed Chore Fee:</span>
+            <span className="font-mono font-bold">₹{job?.agreed_price}</span>
           </div>
-          <div className="flex justify-between text-emerald-700">
+          <div className="flex justify-between text-emerald-800">
             <span>Platform Fee (10%):</span>
-            <span className="font-semibold">-₹{completedPayout.fee_amount || 10}</span>
+            <span className="font-mono font-semibold">-₹{completedPayout.fee_amount || 10}</span>
           </div>
-          <div className="pt-2 border-t border-emerald-200 flex justify-between text-sm font-extrabold text-emerald-900">
+          <div className="pt-2 border-t border-emerald-300/60 flex justify-between text-base font-black text-emerald-950">
             <span>Net Credited to Wallet:</span>
-            <span>+₹{completedPayout.payout_amount || (job?.agreed_price - 10)}</span>
+            <span className="font-mono text-emerald-700">+₹{completedPayout.payout_amount || (job?.agreed_price - 10)}</span>
           </div>
         </div>
 
-        <div className="pt-2 flex flex-col gap-2 max-w-xs mx-auto">
+        <div className="pt-2 flex flex-col gap-2.5 max-w-xs mx-auto">
           {!hasReviewed ? (
             <button
               onClick={() => setShowReviewModal(true)}
-              className="w-full py-2.5 rounded-xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white shadow-xs transition-colors flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-2xl text-xs font-black bg-slate-950 hover:bg-slate-800 text-white shadow-md transition-all flex items-center justify-center gap-2 active:scale-95"
             >
               <Star className="w-4 h-4 fill-white" />
-              <span>Rate & Review Requester</span>
+              <span>Rate &amp; Review Requester</span>
             </button>
           ) : (
-            <p className="text-xs text-emerald-700 font-semibold bg-emerald-50 py-2 rounded-xl border border-emerald-200">
+            <div className="text-xs text-emerald-800 font-bold bg-emerald-50 py-2.5 rounded-2xl border border-emerald-200">
               ✓ Review submitted (Double-blind)
-            </p>
+            </div>
           )}
 
           <Link
             to="/worker"
-            className="w-full py-2.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 transition-colors"
+            className="w-full py-3 rounded-2xl text-xs font-black bg-slate-100 hover:bg-slate-200 text-slate-800 transition-colors"
           >
-            Find Next Job
+            Find Next Chore
           </Link>
         </div>
       </div>
@@ -192,19 +200,21 @@ export function ActiveJobScreen() {
   // Case 2: No active job
   if (!job) {
     return (
-      <div className="max-w-md mx-auto px-4 py-12 text-center">
-        <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-400 mb-3">
+      <div className="max-w-md mx-auto px-4 py-16 text-center space-y-4 animate-fade-in">
+        <div className="w-16 h-16 bg-slate-100 rounded-3xl flex items-center justify-center mx-auto text-slate-400">
           <Briefcase className="w-8 h-8" />
         </div>
-        <h2 className="text-base font-bold text-slate-900">No Active Job</h2>
-        <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
-          You don't currently have an assigned job in progress. Discover open tasks nearby and submit offers!
-        </p>
+        <div>
+          <h2 className="text-base font-black text-slate-950">No Active Job Right Now</h2>
+          <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
+            You don&apos;t currently have an assigned chore in progress. Discover open gigs nearby and submit reverse bids!
+          </p>
+        </div>
         <Link
           to="/worker"
-          className="mt-5 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white shadow-xs transition-colors"
+          className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl text-xs font-black bg-slate-950 hover:bg-slate-800 text-white shadow-md transition-all active:scale-95"
         >
-          <span>Explore Local Jobs</span>
+          <span>Find Available Chores</span>
           <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
@@ -217,65 +227,71 @@ export function ActiveJobScreen() {
   const netEarnings = agreedPrice - fee;
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-5 space-y-5">
+    <div className="max-w-xl mx-auto px-4 py-5 space-y-5 animate-fade-in">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      <div>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-brand-600">
-          Your Current Assignment
-        </span>
-        <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Active Job</h1>
+      {/* Uber Driver Trip Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1 w-fit">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            Current Assignment
+          </span>
+          <h1 className="text-2xl font-black text-slate-950 tracking-tight mt-1">Active Job</h1>
+        </div>
+        <div className="text-right">
+          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+            Your Payout
+          </span>
+          <p className="text-2xl font-black text-emerald-600 font-mono">₹{netEarnings}</p>
+        </div>
       </div>
 
       {/* Task Summary Card */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+      <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-xs space-y-4">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 shrink-0">
+          <div className="flex items-start gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
               {getCategoryIcon(job.category)}
             </div>
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
                 {job.category?.replace(/_/g, ' ')}
               </span>
-              <h2 className="text-base font-extrabold text-slate-900 mt-0.5">{job.title}</h2>
+              <h2 className="text-base sm:text-lg font-black text-slate-950 mt-0.5">{job.title}</h2>
             </div>
-          </div>
-
-          <div className="text-right shrink-0">
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-              Net Payout
-            </span>
-            <p className="text-xl font-extrabold text-emerald-700 leading-none">₹{netEarnings}</p>
           </div>
         </div>
 
         {job.description && (
-          <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-100">
+          <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
             {job.description}
           </p>
         )}
 
         <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
           <div className="flex items-center gap-1.5">
-            <MapPin className="w-3.5 h-3.5 text-brand-600 shrink-0" />
-            <span className="font-semibold text-slate-800">{job.address || 'Local Area'}</span>
+            <MapPin className="w-4 h-4 text-brand-600 shrink-0" />
+            <span className="font-semibold text-slate-900">{job.address || 'Local Area / Landmark'}</span>
           </div>
           {job.requester && (
-            <div className="flex items-center gap-1 text-slate-700">
+            <div className="flex items-center gap-1.5 text-slate-700">
               <span className="text-slate-400">Requester:</span>
-              <span className="font-bold text-slate-900">{job.requester.name}</span>
+              <strong className="text-slate-950">{job.requester.name}</strong>
             </div>
           )}
         </div>
       </div>
 
-      {/* OTP Verification Card */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs text-center space-y-4">
+      {/* Rapido / Uber Driver OTP Handover Card */}
+      <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-7 shadow-xs text-center space-y-5">
         <div>
-          <h3 className="font-extrabold text-slate-900 text-sm">Enter Requester's 4-Digit OTP</h3>
-          <p className="text-xs text-slate-500 mt-0.5 max-w-sm mx-auto">
-            Once you physically meet the requester or hand over items, ask them for their 4-digit code to release escrow.
+          <div className="w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto text-slate-950 mb-2">
+            <ShieldAlert className="w-5 h-5" />
+          </div>
+          <h3 className="font-black text-slate-950 text-base">Enter Requester&apos;s 4-Digit Handover PIN</h3>
+          <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto leading-relaxed">
+            Upon delivering items or completing work in person, ask the requester for their 4-digit code to immediately release escrow funds.
           </p>
         </div>
 
@@ -291,26 +307,26 @@ export function ActiveJobScreen() {
           <button
             onClick={handleVerifyOtp}
             disabled={submitting || otpCode.length !== 4}
-            className="w-full py-3 rounded-xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white shadow-md flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+            className="w-full py-4 rounded-2xl text-xs sm:text-sm font-black bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2 transition-all disabled:opacity-50 active:scale-98"
           >
-            <CheckCircle2 className="w-4 h-4" />
-            <span>{submitting ? 'Verifying OTP...' : 'Verify OTP & Claim Payout'}</span>
+            <CheckCircle2 className="w-4 h-4 stroke-[2.5]" />
+            <span>{submitting ? 'Verifying PIN...' : 'Verify PIN & Claim ₹' + netEarnings}</span>
           </button>
         </div>
 
-        <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400">
-          <ShieldAlert className="w-3.5 h-3.5 text-amber-500" />
-          <span>Warning: 3 failed OTP attempts triggers automatic dispute.</span>
+        <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400 font-medium">
+          <ShieldAlert className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+          <span>Security Notice: 3 incorrect PIN entries locks task into dispute.</span>
         </div>
       </div>
 
       {/* Double-Blind Review Modal */}
       {showReviewModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-slate-200 space-y-4">
-            <h3 className="font-bold text-slate-900 text-base">Rate & Review Requester</h3>
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <h3 className="font-black text-slate-950 text-base">Rate &amp; Review Requester</h3>
             <p className="text-xs text-slate-500">
-              How was your experience with <span className="font-bold text-slate-800">{job.requester?.name || 'Requester'}</span>?
+              How was your experience with <strong className="text-slate-900">{job.requester?.name || 'Requester'}</strong>?
             </p>
 
             <div className="flex items-center justify-center gap-2 py-2">
@@ -319,11 +335,11 @@ export function ActiveJobScreen() {
                   key={star}
                   type="button"
                   onClick={() => setRating(star)}
-                  className="p-1 transition-transform hover:scale-110"
+                  className="p-1 transition-transform hover:scale-125 active:scale-95"
                 >
                   <Star
-                    className={`w-7 h-7 ${
-                      star <= rating ? 'fill-amber-400 text-amber-400' : 'text-slate-300'
+                    className={`w-8 h-8 transition-colors ${
+                      star <= rating ? 'fill-amber-400 text-amber-400' : 'text-slate-200'
                     }`}
                   />
                 </button>
@@ -333,14 +349,14 @@ export function ActiveJobScreen() {
             <textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="e.g. Clear instructions, prompt meeting, very courteous!"
+              placeholder="e.g. Clear directions, quick meeting, polite!"
               rows={3}
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 outline-none resize-none"
+              className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 outline-none resize-none"
               maxLength={300}
             />
 
-            <div className="p-2.5 rounded-lg bg-blue-50 text-[10px] text-blue-800 border border-blue-200">
-              <span className="font-bold">Double-Blind Policy:</span> Your rating is kept hidden until the requester reviews you or 7 days elapse.
+            <div className="p-3 rounded-xl bg-blue-50 text-[10px] text-blue-900 border border-blue-200">
+              <span className="font-bold">Double-Blind Policy:</span> Ratings remain hidden until reciprocal review or 7 days elapse.
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-1">
@@ -348,7 +364,7 @@ export function ActiveJobScreen() {
                 type="button"
                 onClick={() => setShowReviewModal(false)}
                 disabled={submittingReview}
-                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
               >
                 Skip
               </button>
@@ -356,9 +372,9 @@ export function ActiveJobScreen() {
                 type="button"
                 onClick={handleSubmitReview}
                 disabled={submittingReview}
-                className="px-4 py-1.5 rounded-lg text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white shadow-xs transition-colors disabled:opacity-50"
+                className="px-5 py-2.5 rounded-xl text-xs font-black bg-slate-950 hover:bg-slate-800 text-white shadow-xs transition-colors disabled:opacity-50"
               >
-                {submittingReview ? 'Submitting...' : 'Submit Review'}
+                {submittingReview ? 'Submitting...' : 'Submit Rating'}
               </button>
             </div>
           </div>

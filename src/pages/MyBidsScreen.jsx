@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import { useRealtime } from '../context/RealtimeContext';
-import { Clock, CheckCircle2, XCircle, ChevronRight, Briefcase } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, ChevronRight, Briefcase, Zap, ArrowRight } from 'lucide-react';
 
 export function MyBidsScreen() {
   const { user } = useAuth();
@@ -45,122 +45,146 @@ export function MyBidsScreen() {
   const currentList = getActiveTabBids();
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-5 space-y-5">
+    <div className="max-w-3xl mx-auto px-4 py-5 space-y-5 animate-fade-in">
       <div>
-        <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">My Reverse Bids</h1>
+        <h1 className="text-2xl font-black text-slate-950 tracking-tight">My Reverse Offers</h1>
         <p className="text-xs text-slate-500 mt-0.5">
-          Track the status of all offers you've submitted to requesters
+          Track the live status of all task offers you&apos;ve submitted
         </p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200">
+      {/* Uber / Swiggy Style Segmented Tabs */}
+      <div className="flex items-center gap-1.5 p-1 bg-slate-200/70 rounded-2xl w-fit shadow-2xs">
         <button
           onClick={() => setTab('PENDING')}
-          className={`pb-2.5 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 ${
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${
             tab === 'PENDING'
-              ? 'border-brand-600 text-brand-600'
-              : 'border-transparent text-slate-500 hover:text-slate-900'
+              ? 'bg-white text-slate-950 shadow-sm'
+              : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          <Clock className="w-3.5 h-3.5" />
           <span>Pending ({pendingBids.length})</span>
         </button>
 
         <button
           onClick={() => setTab('ACCEPTED')}
-          className={`pb-2.5 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 ${
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${
             tab === 'ACCEPTED'
-              ? 'border-emerald-600 text-emerald-600'
-              : 'border-transparent text-slate-500 hover:text-slate-900'
+              ? 'bg-white text-emerald-700 shadow-sm'
+              : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          <CheckCircle2 className="w-3.5 h-3.5" />
           <span>Accepted ({acceptedBids.length})</span>
         </button>
 
         <button
           onClick={() => setTab('REJECTED')}
-          className={`pb-2.5 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 ${
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${
             tab === 'REJECTED'
-              ? 'border-slate-700 text-slate-700'
-              : 'border-transparent text-slate-500 hover:text-slate-900'
+              ? 'bg-white text-slate-700 shadow-sm'
+              : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          <XCircle className="w-3.5 h-3.5" />
           <span>Closed ({rejectedBids.length})</span>
         </button>
       </div>
 
       {loading ? (
-        <div className="p-8 text-center text-xs text-slate-400 bg-white rounded-2xl border border-slate-200">
+        <div className="p-8 text-center text-xs text-slate-400 bg-white rounded-3xl border border-slate-200">
           Loading your bids...
         </div>
       ) : currentList.length === 0 ? (
-        <div className="p-8 text-center bg-white rounded-2xl border border-slate-200">
-          <p className="text-xs font-semibold text-slate-700">No {tab.toLowerCase()} bids</p>
-          <p className="text-[11px] text-slate-400 mt-1">
-            {tab === 'PENDING'
-              ? 'Explore nearby local tasks and place bids to earn money.'
-              : 'Bids will appear here once requesters review them.'}
+        <div className="p-12 text-center bg-white rounded-3xl border border-slate-200/90 shadow-xs space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+            <Clock className="w-6 h-6" />
+          </div>
+          <p className="text-sm font-extrabold text-slate-900">
+            No {tab.toLowerCase()} offers
           </p>
-          {tab === 'PENDING' && (
-            <Link
-              to="/worker"
-              className="mt-4 inline-block px-3.5 py-1.5 rounded-lg text-xs font-bold bg-brand-50 text-brand-700 hover:bg-brand-100 transition-colors"
-            >
-              Browse Nearby Jobs
-            </Link>
-          )}
+          <p className="text-xs text-slate-500 max-w-xs mx-auto">
+            {tab === 'PENDING'
+              ? 'You have no open bids waiting for requester review.'
+              : tab === 'ACCEPTED'
+              ? 'No bids have been accepted yet. Keep bidding on nearby gigs!'
+              : 'No closed or declined offers.'}
+          </p>
+          <Link
+            to="/worker"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-950 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-colors shadow-2xs mt-2"
+          >
+            <span>Explore Local Gigs</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
       ) : (
-        <div className="divide-y divide-slate-100 bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
-          {currentList.map((bid) => (
-            <div
-              key={bid.id}
-              onClick={() => {
-                if (bid.status === 'ACCEPTED') navigate('/worker/active');
-                else if (bid.task?.id) navigate(`/worker/tasks/${bid.task.id}`);
-              }}
-              className="p-4 flex items-center justify-between gap-3 hover:bg-slate-50 transition-colors cursor-pointer"
-            >
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  {bid.task?.category?.replace(/_/g, ' ') || 'Task'}
-                </span>
-                <h3 className="font-bold text-slate-900 text-xs mt-0.5">{bid.task?.title || 'Local Task'}</h3>
-                {bid.message && (
-                  <p className="text-[11px] text-slate-500 italic mt-0.5">"{bid.message}"</p>
-                )}
-                <span className="text-[10px] text-slate-400 mt-1 inline-block">
-                  {new Date(bid.created_at).toLocaleDateString()} at{' '}
-                  {new Date(bid.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
-              </div>
+        <div className="divide-y divide-slate-100 bg-white rounded-3xl border border-slate-200/90 overflow-hidden shadow-xs">
+          {currentList.map((bid) => {
+            const isAccepted = bid.status === 'ACCEPTED';
+            const isPending = bid.status === 'PENDING';
 
-              <div className="flex items-center gap-3 shrink-0">
-                <div className="text-right">
-                  <span className="text-sm font-extrabold text-slate-900">₹{bid.price}</span>
-                  <p className="text-[10px] text-slate-400">Budget: ₹{bid.task?.budget}</p>
+            return (
+              <div
+                key={bid.id}
+                onClick={() => {
+                  if (bid.task?.id) {
+                    navigate(isAccepted ? '/worker/active' : `/worker/tasks/${bid.task.id}`);
+                  }
+                }}
+                className="p-4 sm:p-5 flex items-center justify-between gap-4 hover:bg-slate-50 transition-colors cursor-pointer group"
+              >
+                <div className="flex items-start gap-3.5">
+                  <div
+                    className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${
+                      isAccepted
+                        ? 'bg-emerald-50 text-emerald-600'
+                        : isPending
+                        ? 'bg-amber-50 text-amber-600'
+                        : 'bg-slate-100 text-slate-500'
+                    }`}
+                  >
+                    {isAccepted ? (
+                      <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />
+                    ) : (
+                      <Zap className="w-5 h-5" />
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-xs sm:text-sm font-black text-slate-950 line-clamp-1 group-hover:text-brand-600 transition-colors">
+                      {bid.task?.title || 'Chore Assignment'}
+                    </h3>
+                    {bid.message && (
+                      <p className="text-xs text-slate-500 mt-0.5 line-clamp-1 italic">
+                        &ldquo;{bid.message}&rdquo;
+                      </p>
+                    )}
+                    <span className="text-[10px] text-slate-400 font-medium mt-1 block">
+                      Submitted {new Date(bid.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
                 </div>
 
-                {bid.status === 'ACCEPTED' ? (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate('/worker/active');
-                    }}
-                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors flex items-center gap-1"
-                  >
-                    <Briefcase className="w-3 h-3" />
-                    <span>Active Job</span>
-                  </button>
-                ) : (
-                  <ChevronRight className="w-4 h-4 text-slate-400" />
-                )}
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="text-right">
+                    <p className="text-base sm:text-lg font-black font-mono text-slate-950">
+                      ₹{bid.price}
+                    </p>
+                    <span
+                      className={`text-[10px] font-black uppercase tracking-wider ${
+                        isAccepted
+                          ? 'text-emerald-700'
+                          : isPending
+                          ? 'text-amber-700'
+                          : 'text-slate-400'
+                      }`}
+                    >
+                      {bid.status}
+                    </span>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 group-hover:text-brand-600 transition-all" />
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

@@ -1,6 +1,6 @@
 // src/pages/PostTaskScreen.jsx
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../services/api';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { LocationPicker } from '../components/map/LocationPicker';
@@ -8,23 +8,45 @@ import { TASK_CATEGORIES } from '../constants/categories';
 import {
   ArrowRight,
   ArrowLeft,
-  CheckCircle2,
-  AlertCircle,
   MapPin,
-  IndianRupee,
-  ShieldCheck,
+  Sparkles,
+  AlertCircle,
+  Zap,
+  CheckCircle2,
+  Clock,
+  Camera,
+  Image as ImageIcon,
+  X,
+  Upload,
 } from 'lucide-react';
 
 const BUDGET_PRESETS = [50, 80, 100, 150, 200, 250, 300];
 
+const QUICK_SUGGESTIONS = [
+  'Pick up lecture notes and photocopies',
+  'Deliver courier parcel from society gate',
+  'Buy groceries & essentials from store',
+  'Help move study table & boxes',
+];
+
 export function PostTaskScreen() {
   const navigate = useNavigate();
+  const searchLocation = useLocation();
   const { coords } = useGeolocation();
+
+  // Read optional query param ?cat=...
+  const queryParams = new URLSearchParams(searchLocation.search);
+  const initialCategoryParam = queryParams.get('cat');
 
   const [step, setStep] = useState(1);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('ERRANDS_DELIVERY');
+  const [taskPhoto, setTaskPhoto] = useState(null);
+  const [category, setCategory] = useState(
+    TASK_CATEGORIES.some((c) => c.key === initialCategoryParam)
+      ? initialCategoryParam
+      : 'ERRANDS_DELIVERY'
+  );
 
   const [location, setLocation] = useState(coords || null);
   const [pinTouched, setPinTouched] = useState(false);
@@ -40,6 +62,21 @@ export function PostTaskScreen() {
       setLocation(coords);
     }
   }, [coords, pinTouched]);
+
+  const handlePhotoSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Photo must be smaller than 5MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        setTaskPhoto(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // Form Validations
   const validateStep1 = () => {
@@ -57,7 +94,7 @@ export function PostTaskScreen() {
       return false;
     }
     if (!address.trim()) {
-      setError('Please enter an address or landmark (e.g. Apt 4B, MG Road)');
+      setError('Please enter an address or landmark (e.g. Block B, Gate 2)');
       return false;
     }
     setError(null);
@@ -85,6 +122,10 @@ export function PostTaskScreen() {
       });
 
       const taskId = res?.task_id || res?.id;
+      if (taskId && taskPhoto) {
+        localStorage.setItem(`whap_task_photo_${taskId}`, taskPhoto);
+      }
+
       if (taskId) {
         navigate(`/requester/tasks/${taskId}`);
       } else {
@@ -103,122 +144,195 @@ export function PostTaskScreen() {
   };
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-6">
-      {/* Wizard Step Progression Indicator */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-          <span className={step >= 1 ? 'text-brand-600' : ''}>1. Task Details</span>
-          <span className={step >= 2 ? 'text-brand-600' : ''}>2. Location Pin</span>
-          <span className={step >= 3 ? 'text-brand-600' : ''}>3. Budget & Review</span>
+    <div className="max-w-xl mx-auto px-4 py-6 space-y-5 animate-fade-in">
+      {/* WHAP Purple Segmented Step Indicator */}
+      <div className="bg-white rounded-3xl border border-purple-100 p-4 shadow-sm">
+        <div className="flex items-center justify-between text-xs font-black uppercase tracking-wider mb-2.5">
+          <span className={step >= 1 ? 'text-[#5e17eb] font-black' : 'text-slate-400'}>
+            1. Task Details
+          </span>
+          <span className={step >= 2 ? 'text-[#5e17eb] font-black' : 'text-slate-400'}>
+            2. Location Pin
+          </span>
+          <span className={step >= 3 ? 'text-[#5e17eb] font-black' : 'text-slate-400'}>
+            3. Budget &amp; Escrow
+          </span>
         </div>
-        <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+        <div className="w-full bg-purple-50 h-2 rounded-full overflow-hidden">
           <div
-            className="bg-brand-600 h-full transition-all duration-300"
+            className="bg-gradient-to-r from-[#5e17eb] to-[#7c3aed] h-full transition-all duration-300 rounded-full"
             style={{ width: `${(step / 3) * 100}%` }}
           ></div>
         </div>
       </div>
 
       {error && (
-        <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 flex items-start gap-2.5 text-xs text-red-700">
-          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-          <span>{error}</span>
+        <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-800 flex items-start gap-3 shadow-2xs animate-fade-in">
+          <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+          <span className="font-semibold">{error}</span>
         </div>
       )}
 
       {/* STEP 1: Details & Category */}
       {step === 1 && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-5">
+        <div className="bg-white rounded-3xl border border-purple-100/80 p-5 sm:p-6 shadow-sm space-y-5">
           <div>
-            <h2 className="text-base font-extrabold text-slate-900">What work do you need done?</h2>
+            <div className="flex items-center gap-2 text-[#5e17eb] text-xs font-black uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Step 1 of 3</span>
+            </div>
+            <h2 className="text-xl font-black text-slate-950 mt-1">What do you need done?</h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Choose a category and write a short description.
+              Choose a category, provide instructions, and attach a photo if needed.
             </p>
           </div>
 
-          {/* Category Selector Grid */}
+          {/* Category Chips Grid */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-              Category
+            <label className="text-[11px] font-black text-slate-700 uppercase tracking-wider">
+              Service Category
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {TASK_CATEGORIES.map((cat) => {
-                const Icon = cat.icon;
                 const isSelected = category === cat.key;
+                const Icon = cat.icon;
                 return (
                   <button
                     key={cat.key}
                     type="button"
                     onClick={() => setCategory(cat.key)}
-                    className={`p-3 rounded-xl border text-left transition-all flex items-start gap-3 ${
+                    className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between gap-2 ${
                       isSelected
-                        ? cat.selectedBg
-                        : `border-slate-200 bg-white ${cat.border} hover:bg-slate-50`
+                        ? 'border-[#5e17eb] bg-purple-50/80 ring-2 ring-[#5e17eb]/20 text-[#5e17eb]'
+                        : 'border-slate-200/80 hover:border-purple-200 bg-white text-slate-700'
                     }`}
                   >
-                    <div className="p-2 rounded-lg bg-white shadow-xs shrink-0">
-                      <Icon className={`w-5 h-5 ${cat.color}`} />
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-slate-900 leading-none">{cat.label}</p>
-                      <p className="text-[11px] text-slate-500 mt-1 line-clamp-1">{cat.description}</p>
-                    </div>
+                    <Icon className={`w-5 h-5 ${isSelected ? 'text-[#5e17eb]' : 'text-slate-500'}`} />
+                    <span className="text-xs font-bold leading-tight">{cat.shortLabel}</span>
                   </button>
                 );
               })}
             </div>
           </div>
 
+          {/* Quick Suggestions Pills */}
+          <div className="space-y-1.5">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              Quick Suggestions
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              {QUICK_SUGGESTIONS.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setTitle(s)}
+                  className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-purple-50/60 hover:bg-purple-100/70 text-purple-900 border border-purple-100 transition-colors"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Title Input */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-              Task Title <span className="text-red-500">*</span>
+            <label className="text-[11px] font-black text-slate-700 uppercase tracking-wider flex items-center justify-between">
+              <span>Task Title <span className="text-red-500">*</span></span>
+              <span className="text-slate-400 text-[10px] font-normal">{title.length}/100</span>
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Pick up parcel from pharmacy or assemble bookshelf"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 outline-none"
+              placeholder="e.g. Pick up 5 copies of ML notes from Nesara Xerox"
+              className="w-full px-4 py-3 rounded-2xl border border-slate-200 text-xs sm:text-sm font-medium focus:ring-2 focus:ring-[#5e17eb]/20 focus:border-[#5e17eb] outline-none transition-all shadow-2xs"
               maxLength={100}
             />
           </div>
 
           {/* Description Input */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-              Special Instructions (Optional)
+            <label className="text-[11px] font-black text-slate-700 uppercase tracking-wider flex items-center justify-between">
+              <span>Instructions / Details (Optional)</span>
+              <span className="text-slate-400 text-[10px] font-normal">{description.length}/400</span>
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe what needs to be done, tools needed, or pickup details..."
+              placeholder="Provide exact room number, person to meet, or contact details..."
               rows={3}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 outline-none resize-none"
+              className="w-full px-4 py-3 rounded-2xl border border-slate-200 text-xs sm:text-sm font-medium focus:ring-2 focus:ring-[#5e17eb]/20 focus:border-[#5e17eb] outline-none resize-none transition-all shadow-2xs"
               maxLength={400}
             />
           </div>
 
-          <div className="pt-2 flex justify-end">
+          {/* Task Photo Upload (New Feature) */}
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-black text-slate-700 uppercase tracking-wider flex items-center justify-between">
+              <span>Task Photo / Reference (Optional)</span>
+              <span className="text-slate-400 text-[10px]">Max 5MB</span>
+            </label>
+
+            {taskPhoto ? (
+              <div className="relative rounded-2xl border border-purple-200 overflow-hidden bg-slate-50 p-2 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <img
+                    src={taskPhoto}
+                    alt="Task preview"
+                    className="w-16 h-16 rounded-xl object-cover border border-purple-100 shadow-2xs"
+                  />
+                  <div>
+                    <p className="text-xs font-bold text-slate-900">Photo attached successfully</p>
+                    <p className="text-[11px] text-slate-500">Helpers will see this reference image</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setTaskPhoto(null)}
+                  className="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl transition-colors mr-2"
+                  title="Remove Photo"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex items-center justify-center gap-2 p-4 border-2 border-dashed border-purple-200 hover:border-[#5e17eb] rounded-2xl cursor-pointer bg-purple-50/30 hover:bg-purple-50/70 transition-all text-xs font-bold text-purple-900">
+                <Camera className="w-4 h-4 text-[#5e17eb]" />
+                <span>Upload or Take Task Photo</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoSelect}
+                  className="hidden"
+                />
+              </label>
+            )}
+          </div>
+
+          <div className="pt-3 flex justify-end">
             <button
               type="button"
               onClick={handleNext}
-              className="px-5 py-2.5 rounded-xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white flex items-center gap-2 shadow-xs transition-colors"
+              className="px-6 py-3.5 rounded-2xl text-xs font-black bg-[#5e17eb] hover:bg-[#5013ca] text-white flex items-center gap-2 shadow-md shadow-purple-600/20 transition-all active:scale-95"
             >
-              <span>Next: Pin Location</span>
+              <span>Next: Set Location Pin</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </div>
       )}
 
-      {/* STEP 2: Location Picker */}
+      {/* STEP 2: Location Pin */}
       {step === 2 && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-5">
+        <div className="bg-white rounded-3xl border border-purple-100/80 p-5 sm:p-6 shadow-sm space-y-5">
           <div>
-            <h2 className="text-base font-extrabold text-slate-900">Pin Task Location</h2>
+            <div className="flex items-center gap-2 text-[#5e17eb] text-xs font-black uppercase tracking-wider">
+              <MapPin className="w-3.5 h-3.5" />
+              <span>Step 2 of 3</span>
+            </div>
+            <h2 className="text-xl font-black text-slate-950 mt-1">Pin Exact Task Location</h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Click anywhere on the map or drag the pin to mark where the work needs to be done.
+              Drag the pin or tap the map to designate where the chore takes place.
             </p>
           </div>
 
@@ -232,24 +346,24 @@ export function PostTaskScreen() {
           />
 
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 text-brand-600" />
-              <span>Address / Landmark / Area <span className="text-red-500">*</span></span>
+            <label className="text-[11px] font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-[#5e17eb]" />
+              <span>Address / Building / Landmark <span className="text-red-500">*</span></span>
             </label>
             <input
               type="text"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
-              placeholder="e.g. Block B Apt 204, near Metro Gate 2"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 outline-none"
+              placeholder="e.g. Block B, Main Market / Flat 402"
+              className="w-full px-4 py-3 rounded-2xl border border-slate-200 text-xs sm:text-sm font-medium focus:ring-2 focus:ring-[#5e17eb]/20 focus:border-[#5e17eb] outline-none transition-all shadow-2xs"
             />
           </div>
 
-          <div className="pt-2 flex items-center justify-between">
+          <div className="pt-3 flex items-center justify-between">
             <button
               type="button"
               onClick={() => setStep(1)}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 flex items-center gap-1.5 transition-colors"
+              className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 flex items-center gap-1.5 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back</span>
@@ -258,7 +372,7 @@ export function PostTaskScreen() {
             <button
               type="button"
               onClick={handleNext}
-              className="px-5 py-2.5 rounded-xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white flex items-center gap-2 shadow-xs transition-colors"
+              className="px-6 py-3.5 rounded-2xl text-xs font-black bg-[#5e17eb] hover:bg-[#5013ca] text-white flex items-center gap-2 shadow-md shadow-purple-600/20 transition-all active:scale-95"
             >
               <span>Next: Set Budget</span>
               <ArrowRight className="w-4 h-4" />
@@ -269,18 +383,22 @@ export function PostTaskScreen() {
 
       {/* STEP 3: Budget & Review */}
       {step === 3 && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-5">
+        <div className="bg-white rounded-3xl border border-purple-100/80 p-5 sm:p-6 shadow-sm space-y-5">
           <div>
-            <h2 className="text-base font-extrabold text-slate-900">Set Budget & Review</h2>
+            <div className="flex items-center gap-2 text-[#5e17eb] text-xs font-black uppercase tracking-wider">
+              <Zap className="w-3.5 h-3.5" />
+              <span>Step 3 of 3</span>
+            </div>
+            <h2 className="text-xl font-black text-slate-950 mt-1">Set Task Budget &amp; Review</h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Choose your initial budget (₹50 to ₹300). Workers can place reverse bids around this price.
+              Platform rules require budget between ₹50 and ₹300. Workers submit offers around this price.
             </p>
           </div>
 
           {/* Stepper & Slider */}
-          <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-4">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-              Task Budget
+          <div className="p-6 rounded-3xl bg-purple-50/40 border border-purple-100 text-center space-y-4 shadow-2xs">
+            <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">
+              Escrow Task Budget
             </span>
 
             <div className="flex items-center justify-center gap-4">
@@ -288,24 +406,26 @@ export function PostTaskScreen() {
                 type="button"
                 onClick={() => handleBudgetStep(-10)}
                 disabled={budget <= 50}
-                className="w-10 h-10 rounded-xl bg-white border border-slate-300 shadow-xs flex items-center justify-center text-slate-700 hover:bg-slate-100 font-extrabold text-lg disabled:opacity-40"
+                className="w-10 h-10 rounded-2xl bg-white border border-purple-200 text-[#5e17eb] font-black text-lg flex items-center justify-center hover:bg-purple-50 disabled:opacity-30 shadow-2xs transition-all active:scale-95"
               >
                 -
               </button>
-              <div className="text-3xl font-extrabold text-slate-900 tracking-tight font-mono">
+
+              <div className="font-mono text-4xl sm:text-5xl font-black text-slate-950 tracking-tight">
                 ₹{budget}
               </div>
+
               <button
                 type="button"
                 onClick={() => handleBudgetStep(10)}
                 disabled={budget >= 300}
-                className="w-10 h-10 rounded-xl bg-white border border-slate-300 shadow-xs flex items-center justify-center text-slate-700 hover:bg-slate-100 font-extrabold text-lg disabled:opacity-40"
+                className="w-10 h-10 rounded-2xl bg-white border border-purple-200 text-[#5e17eb] font-black text-lg flex items-center justify-center hover:bg-purple-50 disabled:opacity-30 shadow-2xs transition-all active:scale-95"
               >
                 +
               </button>
             </div>
 
-            {/* Range Slider */}
+            {/* Slider */}
             <input
               type="range"
               min={50}
@@ -313,20 +433,20 @@ export function PostTaskScreen() {
               step={10}
               value={budget}
               onChange={(e) => setBudget(Number(e.target.value))}
-              className="w-full accent-brand-600"
+              className="w-full h-2 bg-purple-200 rounded-lg appearance-none cursor-pointer accent-[#5e17eb]"
             />
 
-            {/* Preset Chips */}
+            {/* Preset Buttons */}
             <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1">
               {BUDGET_PRESETS.map((p) => (
                 <button
                   key={p}
                   type="button"
                   onClick={() => setBudget(p)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  className={`px-3 py-1 rounded-full text-xs font-mono font-bold transition-all ${
                     budget === p
-                      ? 'bg-brand-600 text-white shadow-xs'
-                      : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+                      ? 'bg-[#5e17eb] text-white shadow-xs'
+                      : 'bg-white border border-purple-100 text-slate-600 hover:bg-purple-50'
                   }`}
                 >
                   ₹{p}
@@ -335,39 +455,35 @@ export function PostTaskScreen() {
             </div>
           </div>
 
-          {/* Review Summary */}
-          <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-2 text-xs">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <span className="font-bold text-slate-500">Category:</span>
-              <span className="font-bold text-brand-700">{category.replace(/_/g, ' ')}</span>
+          {/* Summary Checklist */}
+          <div className="space-y-2.5 p-4 rounded-2xl bg-slate-50 border border-slate-100 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-slate-500">Category</span>
+              <strong className="text-slate-900">
+                {TASK_CATEGORIES.find((c) => c.key === category)?.label}
+              </strong>
             </div>
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <span className="font-bold text-slate-500">Task:</span>
-              <span className="font-bold text-slate-900 text-right line-clamp-1 max-w-[240px]">{title}</span>
+            <div className="flex items-center justify-between">
+              <span className="text-slate-500">Destination</span>
+              <strong className="text-slate-900 truncate max-w-[200px]">{address}</strong>
             </div>
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <span className="font-bold text-slate-500">Location:</span>
-              <span className="text-slate-800 text-right line-clamp-1 max-w-[240px]">{address}</span>
-            </div>
-            <div className="flex items-center justify-between pt-1 text-sm font-extrabold">
-              <span className="text-slate-900">Total Budget:</span>
-              <span className="text-brand-600">₹{budget}</span>
+            {taskPhoto && (
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Attached Photo</span>
+                <span className="text-emerald-700 font-bold">1 image attached</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between pt-2 border-t border-slate-200">
+              <span className="font-bold text-slate-900">Escrow Locked from Wallet</span>
+              <span className="font-black text-slate-950 font-mono text-sm">₹{budget}</span>
             </div>
           </div>
 
-          {/* Escrow Informational Callout */}
-          <div className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 border border-blue-200 text-[11px] text-blue-900">
-            <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-            <p>
-              Your wallet will NOT be charged when posting. Funds are deducted and held in escrow only when you choose to accept a worker's bid.
-            </p>
-          </div>
-
-          <div className="pt-2 flex items-center justify-between">
+          <div className="pt-3 flex items-center justify-between">
             <button
               type="button"
               onClick={() => setStep(2)}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 flex items-center gap-1.5 transition-colors"
+              className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 flex items-center gap-1.5 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back</span>
@@ -375,18 +491,12 @@ export function PostTaskScreen() {
 
             <button
               type="button"
-              onClick={handleSubmit}
               disabled={loading}
-              className="px-6 py-2.5 rounded-xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white shadow-md flex items-center gap-2 transition-all disabled:opacity-50"
+              onClick={handleSubmit}
+              className="px-7 py-3.5 rounded-2xl text-xs font-black bg-gradient-to-r from-[#5e17eb] to-[#7c3aed] hover:from-[#5013ca] hover:to-[#6d28d9] text-white flex items-center gap-2 shadow-lg shadow-purple-600/30 transition-all disabled:opacity-50 active:scale-95"
             >
-              {loading ? (
-                <span>Posting Task...</span>
-              ) : (
-                <>
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Post Task Now</span>
-                </>
-              )}
+              <CheckCircle2 className="w-4 h-4 stroke-[3]" />
+              <span>{loading ? 'Publishing Task...' : 'Confirm & Lock Escrow'}</span>
             </button>
           </div>
         </div>

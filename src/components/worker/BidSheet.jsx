@@ -2,7 +2,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
-import { Send, CheckCircle2, AlertCircle, Info } from 'lucide-react';
+import { Send, CheckCircle2, AlertCircle, Zap, ShieldCheck } from 'lucide-react';
+
+const SUGGESTED_OFFER_MESSAGES = [
+  'Available right now, on two-wheeler',
+  'I am right near this department',
+  'Can deliver carefully within 20 mins',
+];
 
 export function BidSheet({
   task,
@@ -61,112 +67,131 @@ export function BidSheet({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
-      <div>
-        <h3 className="text-sm font-extrabold text-slate-900">
-          {existingBid ? 'Update Your Offer' : 'Make an Offer'}
-        </h3>
-        <p className="text-xs text-slate-500 mt-0.5">
-          Propose your price to complete this task (Min ₹{minBid}, Max ₹{maxBid}).
-        </p>
+    <form
+      onSubmit={handleSubmit}
+      className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-xs space-y-5 animate-fade-in"
+    >
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-base font-black text-slate-950">
+            {existingBid ? 'Update Your Offer' : 'Submit Reverse Bid'}
+          </h3>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Compete with fair pricing (Floor ₹{minBid}, Ceiling ₹{maxBid}).
+          </p>
+        </div>
+        <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+          Reverse Bidding
+        </span>
       </div>
 
       {hasActiveJob && (
-        <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2">
-          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-          <span>
-            <strong>Active Job Lock:</strong> You currently have an active job in progress. You cannot bid on new chores until your assigned job is completed.
-          </span>
+        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-950 flex items-start gap-3 shadow-2xs">
+          <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <strong className="font-bold">Active Job Lock:</strong> You currently have an active chore in progress. Platform safety policy permits max 1 active assignment per worker.
+          </div>
         </div>
       )}
 
       {error && (
-        <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2">
+        <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-800 flex items-start gap-3 shadow-2xs">
           <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-          <span>{error}</span>
+          <span className="font-semibold">{error}</span>
         </div>
       )}
 
-      {/* Stepper Controls */}
-      <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-2">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-          Your Proposed Price
+      {/* Uber / Rapido Style Price Stepper */}
+      <div className="p-6 rounded-3xl bg-slate-50 border border-slate-200/80 text-center space-y-3">
+        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+          Your Proposed Fee
         </span>
 
-        <div className="flex items-center justify-center gap-4">
+        <div className="flex items-center justify-center gap-5">
           <button
             type="button"
-            onClick={() => handleStep(-10)}
+            onClick={() => handleStep(-5)}
             disabled={price <= minBid || hasActiveJob}
-            className="w-10 h-10 rounded-xl bg-white border border-slate-300 shadow-xs flex items-center justify-center text-slate-700 hover:bg-slate-100 font-extrabold text-lg disabled:opacity-40"
+            className="w-12 h-12 rounded-2xl bg-white border border-slate-300 shadow-sm flex items-center justify-center text-slate-800 hover:bg-slate-100 font-black text-2xl disabled:opacity-40 active:scale-95 transition-all"
           >
             -
           </button>
-          <div className="text-3xl font-extrabold text-slate-900 font-mono tracking-tight">
+          <div className="text-4xl sm:text-5xl font-black text-slate-950 tracking-tight font-mono">
             ₹{price}
           </div>
           <button
             type="button"
-            onClick={() => handleStep(10)}
+            onClick={() => handleStep(5)}
             disabled={price >= maxBid || hasActiveJob}
-            className="w-10 h-10 rounded-xl bg-white border border-slate-300 shadow-xs flex items-center justify-center text-slate-700 hover:bg-slate-100 font-extrabold text-lg disabled:opacity-40"
+            className="w-12 h-12 rounded-2xl bg-white border border-slate-300 shadow-sm flex items-center justify-center text-slate-800 hover:bg-slate-100 font-black text-2xl disabled:opacity-40 active:scale-95 transition-all"
           >
             +
           </button>
         </div>
 
-        <input
-          type="range"
-          min={minBid}
-          max={maxBid}
-          step={5}
-          value={price}
-          disabled={hasActiveJob}
-          onChange={(e) => setPrice(Number(e.target.value))}
-          className="w-full accent-brand-600"
-        />
-      </div>
-
-      {/* Platform Fee & Net Payout Breakdown */}
-      <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1.5">
-        <div className="flex items-center justify-between text-slate-600">
-          <span>Bid Amount:</span>
-          <span className="font-semibold text-slate-900">₹{price}.00</span>
-        </div>
-        <div className="flex items-center justify-between text-slate-500">
-          <span>Platform Fee (10%, min ₹5):</span>
-          <span className="font-semibold text-slate-700">-₹{platformFee}.00</span>
-        </div>
-        <div className="pt-1.5 border-t border-slate-200 flex items-center justify-between font-bold text-slate-900 text-sm">
-          <span className="text-emerald-700">Estimated Net Payout:</span>
-          <span className="text-emerald-700 font-extrabold">₹{netPayout}.00</span>
+        {/* Uber Style Fare Breakdown Pill */}
+        <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 flex items-center justify-between text-xs max-w-sm mx-auto shadow-2xs">
+          <div className="text-left">
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+              Platform Fee (10%)
+            </span>
+            <p className="font-bold text-slate-700 font-mono">-₹{platformFee}</p>
+          </div>
+          <div className="text-right">
+            <span className="text-[10px] text-emerald-600 font-black uppercase tracking-wider">
+              Net Take-Home
+            </span>
+            <p className="text-base font-black text-emerald-700 font-mono">₹{netPayout}</p>
+          </div>
         </div>
       </div>
 
-      {/* Worker Pitch Message */}
-      <div className="space-y-1">
-        <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-          Message to Requester (Optional)
+      {/* Message & Quick Chips */}
+      <div className="space-y-2">
+        <label className="text-[11px] font-black text-slate-700 uppercase tracking-wider">
+          Note to Requester (Optional)
         </label>
-        <textarea
+        <input
+          type="text"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
+          placeholder="e.g. Can deliver in 15 mins or I have a bike"
           disabled={hasActiveJob}
-          placeholder="e.g. I am right outside the printing shop now and can deliver in 10 mins!"
-          rows={2}
-          className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 outline-none resize-none disabled:bg-slate-100"
-          maxLength={200}
+          maxLength={120}
+          className="w-full px-4 py-3 rounded-2xl border border-slate-200 text-xs sm:text-sm font-medium focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 outline-none transition-all shadow-2xs disabled:bg-slate-100"
         />
+
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          {SUGGESTED_OFFER_MESSAGES.map((msg, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => setMessage(msg)}
+              disabled={hasActiveJob}
+              className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-medium transition-colors disabled:opacity-40"
+            >
+              {msg}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <button
-        type="submit"
-        disabled={submitting || hasActiveJob}
-        className="w-full py-2.5 rounded-xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white shadow-xs flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
-      >
-        <Send className="w-3.5 h-3.5" />
-        <span>{submitting ? 'Submitting Bid...' : existingBid ? 'Update Bid' : 'Submit Reverse Bid'}</span>
-      </button>
+      <div className="pt-2">
+        <button
+          type="submit"
+          disabled={submitting || hasActiveJob}
+          className="w-full py-4 rounded-2xl text-xs sm:text-sm font-black bg-gradient-to-r from-slate-950 to-brand-600 hover:from-slate-900 hover:to-brand-700 text-white shadow-lg shadow-brand-500/20 flex items-center justify-center gap-2 transition-all disabled:opacity-50 active:scale-98"
+        >
+          {submitting ? (
+            <span>Transmitting Offer...</span>
+          ) : (
+            <>
+              <Send className="w-4 h-4 stroke-[2.5]" />
+              <span>{existingBid ? 'Update Offer • ₹' + price : 'Send Offer • ₹' + price}</span>
+            </>
+          )}
+        </button>
+      </div>
     </form>
   );
 }

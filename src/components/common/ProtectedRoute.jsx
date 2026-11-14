@@ -17,11 +17,16 @@ export function ProtectedRoute({ children, allowedRoles = [] }) {
   }
 
   if (!user) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    const isTryingAdmin = location.pathname.startsWith('/admin');
+    const redirectPath = isTryingAdmin ? '/login?admin=true' : '/login';
+    return <Navigate to={redirectPath} state={{ from: location }} replace />;
   }
 
   // If role-specific restriction is present
   if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
+    if (location.pathname.startsWith('/admin')) {
+      return <Navigate to="/login?admin=true" state={{ from: location }} replace />;
+    }
     if (role === 'ADMIN') return <Navigate to="/admin" replace />;
     if (role === 'WORKER') return <Navigate to="/worker" replace />;
     return <Navigate to="/requester" replace />;

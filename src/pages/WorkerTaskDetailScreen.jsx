@@ -14,6 +14,8 @@ import {
   Calendar,
   Star,
   Briefcase,
+  Zap,
+  ArrowRight,
 } from 'lucide-react';
 
 const getCategoryIcon = (category) => {
@@ -48,22 +50,22 @@ export function WorkerTaskDetailScreen() {
   if (loading) {
     return (
       <div className="min-h-[50vh] flex flex-col items-center justify-center p-6 text-slate-500">
-        <div className="w-8 h-8 border-3 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
-        <p className="mt-3 text-xs font-medium">Loading job details...</p>
+        <div className="w-8 h-8 border-3 border-slate-900 border-t-transparent rounded-full animate-spin"></div>
+        <p className="mt-3 text-xs font-bold text-slate-700">Loading job specifications...</p>
       </div>
     );
   }
 
   if (error || !task) {
     return (
-      <div className="max-w-md mx-auto p-6 text-center">
-        <p className="text-sm font-bold text-red-600">Task Not Found</p>
-        <p className="text-xs text-slate-500 mt-1">{error || 'This task does not exist or has been removed.'}</p>
+      <div className="max-w-md mx-auto p-8 text-center bg-white rounded-3xl border border-slate-200 mt-6 shadow-xs">
+        <p className="text-sm font-black text-red-600">Task Not Found</p>
+        <p className="text-xs text-slate-500 mt-1">{error || 'This task does not exist or has expired.'}</p>
         <button
           onClick={() => navigate('/worker')}
-          className="mt-4 text-xs font-semibold text-brand-600 hover:underline"
+          className="mt-4 text-xs font-bold text-slate-950 hover:underline"
         >
-          ← Back to Find Local Jobs
+          ← Back to Local Jobs
         </button>
       </div>
     );
@@ -79,54 +81,72 @@ export function WorkerTaskDetailScreen() {
 
       <button
         onClick={() => navigate('/worker')}
-        className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors"
+        className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-950 transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         <span>Back to Local Jobs</span>
       </button>
 
       {/* Task Specification Card */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+      <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-xs space-y-4">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 shrink-0">
+          <div className="flex items-start gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
               {getCategoryIcon(task.category)}
             </div>
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-brand-600">
+              <span className="text-[10px] font-black uppercase tracking-wider text-brand-600">
                 {task.category?.replace(/_/g, ' ')}
               </span>
-              <h1 className="text-lg font-extrabold text-slate-900 mt-0.5">{task.title}</h1>
+              <h1 className="text-base sm:text-lg font-black text-slate-950 mt-0.5">{task.title}</h1>
             </div>
           </div>
 
           <div className="text-right shrink-0">
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-              Requester Budget
+            <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider">
+              Budget
             </span>
-            <p className="text-xl font-extrabold text-slate-900 leading-none">₹{task.budget}</p>
+            <p className="text-2xl font-black text-slate-950 font-mono leading-none">
+              ₹{task.budget}
+            </p>
           </div>
         </div>
 
         {task.description && (
-          <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-100">
+          <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
             {task.description}
           </p>
         )}
 
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-1 text-xs text-slate-500 border-t border-slate-100">
+        {/* Attached Task Photo if available */}
+        {(task.photo_url || localStorage.getItem(`whap_task_photo_${task.id}`)) && (
+          <div className="space-y-1.5">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+              Attached Task Reference Photo
+            </span>
+            <div className="rounded-2xl overflow-hidden border border-purple-100 max-h-64 bg-slate-50 shadow-2xs">
+              <img
+                src={task.photo_url || localStorage.getItem(`whap_task_photo_${task.id}`)}
+                alt="Task attachment"
+                className="w-full h-auto max-h-64 object-cover"
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 text-xs text-slate-500 border-t border-slate-100">
           <div className="flex items-center gap-1.5">
-            <MapPin className="w-3.5 h-3.5 text-brand-600 shrink-0" />
-            <span className="font-medium text-slate-700">{task.address || 'Local Area'}</span>
+            <MapPin className="w-4 h-4 text-brand-600 shrink-0" />
+            <span className="font-semibold text-slate-800">{task.address || 'Local Area / Landmark'}</span>
           </div>
 
           {task.requester && (
-            <div className="flex items-center gap-1.5 text-slate-700">
+            <div className="flex items-center gap-2 text-slate-700">
               <span className="text-slate-400">Posted by:</span>
-              <span className="font-bold text-slate-900">{task.requester.name}</span>
+              <strong className="text-slate-950">{task.requester.name}</strong>
               {task.requester.rating_average > 0 && (
-                <span className="inline-flex items-center text-[10px] font-bold text-amber-600 bg-amber-50 px-1 rounded">
-                  <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400 mr-0.5" />
+                <span className="inline-flex items-center text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                  <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400 mr-1" />
                   {Number(task.requester.rating_average).toFixed(1)}
                 </span>
               )}
@@ -137,19 +157,22 @@ export function WorkerTaskDetailScreen() {
 
       {/* If task is already assigned to this worker */}
       {isAssignedToMe && task.status === 'ASSIGNED' ? (
-        <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl flex items-center justify-between">
-          <div className="flex items-center gap-2.5 text-xs text-blue-900">
-            <Briefcase className="w-5 h-5 text-blue-600 shrink-0" />
+        <div className="p-5 bg-gradient-to-r from-blue-950 to-slate-900 text-white rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg border border-blue-800/40">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-300 shrink-0">
+              <Briefcase className="w-6 h-6" />
+            </div>
             <div>
-              <p className="font-bold">This job is assigned to you!</p>
-              <p className="text-blue-700 text-[11px]">Go to your Active Job view to enter the completion OTP.</p>
+              <p className="font-black text-sm text-white">This job is assigned to you!</p>
+              <p className="text-blue-200 text-xs mt-0.5">Go to your Active Job view to enter the completion OTP.</p>
             </div>
           </div>
           <button
             onClick={() => navigate('/worker/active')}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors shrink-0"
+            className="px-5 py-3 bg-white hover:bg-slate-100 text-slate-950 font-black text-xs rounded-2xl shadow-sm transition-all flex items-center justify-center gap-2 shrink-0 active:scale-95"
           >
-            Go to Active Job
+            <span>Open Active Job</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
       ) : task.status === 'OPEN' ? (
@@ -163,7 +186,7 @@ export function WorkerTaskDetailScreen() {
           }}
         />
       ) : (
-        <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl text-center text-xs text-slate-500">
+        <div className="p-6 bg-slate-50 border border-slate-200 rounded-3xl text-center text-xs text-slate-500">
           This task is no longer open for bidding (Status: {task.status}).
         </div>
       )}

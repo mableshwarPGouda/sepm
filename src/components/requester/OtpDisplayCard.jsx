@@ -16,27 +16,35 @@ export function OtpDisplayCard({ otpCode }) {
   };
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-brand-200 rounded-2xl p-5 shadow-sm">
-      <div className="flex items-center justify-between pb-3 border-b border-brand-100">
-        <div className="flex items-center gap-2 text-brand-950 font-bold text-xs uppercase tracking-wide">
-          <ShieldCheck className="w-4 h-4 text-brand-600" />
-          <span>Task Completion OTP</span>
+    <div className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 text-white border-2 border-indigo-500/30 rounded-3xl p-6 shadow-xl">
+      <div className="absolute top-0 right-0 -mt-6 -mr-6 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+      {/* Card Header */}
+      <div className="flex items-center justify-between pb-3.5 border-b border-white/10">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-indigo-500/20 border border-indigo-400/40 flex items-center justify-center text-indigo-300">
+            <ShieldCheck className="w-4 h-4" />
+          </div>
+          <span className="font-black text-xs uppercase tracking-wider text-indigo-200">
+            Delivery Handover PIN
+          </span>
         </div>
-        <div className="flex items-center gap-1 text-[11px] text-brand-700 font-medium">
-          <Clock className="w-3.5 h-3.5" />
-          <span>Valid for 2 hours</span>
+        <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 bg-white/5 px-2.5 py-1 rounded-full border border-white/5">
+          <Clock className="w-3 h-3 text-indigo-400" />
+          <span>Valid 2 Hours</span>
         </div>
       </div>
 
-      <div className="my-5 flex flex-col items-center">
-        <span className="text-xs text-slate-600 font-medium mb-3 text-center">
-          Give this 4-digit code in-person to your worker <span className="font-bold text-slate-900">ONLY</span> after you verify the chore:
+      {/* OTP Display Blocks */}
+      <div className="my-6 flex flex-col items-center">
+        <span className="text-xs text-slate-300 font-medium mb-4 text-center max-w-xs">
+          Hand this 4-digit code in-person to your worker <strong className="text-white">ONLY</strong> after you inspect the chore:
         </span>
         <div className="flex items-center gap-3">
           {digits.map((digit, idx) => (
             <div
               key={idx}
-              className="w-14 h-16 bg-white rounded-xl shadow-md border-2 border-brand-400 flex items-center justify-center text-3xl font-extrabold text-brand-950 font-mono"
+              className="w-14 sm:w-16 h-18 sm:h-20 bg-white/10 backdrop-blur-md rounded-2xl shadow-xl border-2 border-indigo-400/40 flex items-center justify-center text-3xl sm:text-4xl font-black text-white font-mono tracking-tighter"
             >
               {digit}
             </div>
@@ -44,17 +52,28 @@ export function OtpDisplayCard({ otpCode }) {
         </div>
       </div>
 
-      <div className="flex items-center justify-between pt-3 border-t border-brand-100">
-        <div className="flex items-center gap-1.5 text-[11px] text-slate-600">
-          <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-          <span>Never share this code over chat or before items arrive.</span>
+      {/* Warning & Copy Button */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3.5 border-t border-white/10">
+        <div className="flex items-center gap-2 text-[11px] text-slate-400">
+          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+          <span>Never share this code over phone, chat, or before items arrive.</span>
         </div>
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1 px-3 py-1.5 bg-white hover:bg-brand-50 text-brand-700 font-semibold text-xs rounded-lg border border-brand-200 shadow-xs transition-colors shrink-0"
+          type="button"
+          className="flex items-center justify-center gap-1.5 px-4 py-2 bg-white hover:bg-slate-100 text-slate-950 font-black text-xs rounded-xl shadow-sm transition-all active:scale-95 shrink-0 self-end sm:self-auto"
         >
-          {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-          <span>{copied ? 'Copied' : 'Copy'}</span>
+          {copied ? (
+            <>
+              <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" />
+              <span className="text-emerald-700">Copied!</span>
+            </>
+          ) : (
+            <>
+              <Copy className="w-3.5 h-3.5" />
+              <span>Copy Code</span>
+            </>
+          )}
         </button>
       </div>
     </div>

@@ -3,20 +3,29 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { NetworkStatus } from './NetworkStatus';
-import { Wallet, User, ArrowLeftRight, Sparkles } from 'lucide-react';
+import {
+  Wallet,
+  User,
+  Zap,
+  ShoppingBag,
+  Sparkles,
+  Heart,
+  Search,
+  Bell,
+  Clock,
+} from 'lucide-react';
 
 export function Header() {
-  const { user, profile, wallet, role, switchRole } = useAuth();
+  const { user, profile, role, switchRole, wallet, workerStatus, isWorkerApproved } = useAuth();
   const navigate = useNavigate();
 
-  const handleToggleRole = async () => {
-    if (!profile) return;
-    const targetRole = role === 'REQUESTER' ? 'WORKER' : 'REQUESTER';
+  const handleSelectRole = async (targetRole) => {
+    if (role === targetRole) return;
     try {
       await switchRole(targetRole);
       navigate(targetRole === 'REQUESTER' ? '/requester' : '/worker');
     } catch (err) {
-      console.error('Role switch failed:', err);
+      console.error('Failed to switch role:', err);
     }
   };
 
@@ -27,78 +36,144 @@ export function Header() {
   };
 
   return (
-    <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
-      <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
-        {/* Brand & Logo */}
-        <div className="flex items-center gap-3">
-          <Link to={getHomePath()} className="flex items-center gap-2 group">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-brand-500 flex items-center justify-center text-white font-extrabold shadow-sm group-hover:shadow transition-shadow">
-              <span className="text-base tracking-tighter">W</span>
+    <header className="bg-white/90 backdrop-blur-md border-b border-purple-100/80 sticky top-0 z-40 transition-all">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between gap-3">
+        {/* Brand & Logo matching reference image */}
+        <div className="flex items-center gap-2.5">
+          <Link to={getHomePath()} className="flex items-center gap-2.5 group">
+            <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-[#1e084a] via-[#3b0764] to-[#7c3aed] flex items-center justify-center text-white font-black shadow-md shadow-purple-900/20 group-hover:scale-105 transition-transform">
+              <span className="text-lg font-black tracking-tight">W</span>
             </div>
-            <div className="flex flex-col">
-              <span className="font-extrabold text-slate-900 tracking-tight text-base leading-none">
+            <div className="flex items-center gap-1.5">
+              <span className="font-black text-[#170836] tracking-tight text-xl leading-none">
                 WHAP
-              </span>
-              <span className="text-[10px] text-brand-600 font-semibold tracking-wider uppercase">
-                Hyperlocal Marketplace
               </span>
             </div>
           </Link>
-
-          {/* Regulatory Notice Pill in Header */}
-          <div className="hidden lg:flex items-center">
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
-              Prototype - simulated payments
-            </span>
-          </div>
         </div>
 
-        {/* Right Action Bar */}
-        <div className="flex items-center gap-2.5">
-          {/* Network Status Live / Polling */}
-          <NetworkStatus compact={true} />
+        {/* Center Search Bar matching Image 1 */}
+        {user && (
+          <div className="hidden sm:flex items-center flex-1 max-w-xs md:max-w-md mx-2">
+            <div className="relative w-full">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search tasks, services..."
+                className="w-full pl-9 pr-4 py-1.5 rounded-full bg-purple-50/60 border border-purple-100/90 text-xs font-medium focus:bg-white focus:border-[#5e17eb] focus:ring-2 focus:ring-[#5e17eb]/20 outline-none transition-all placeholder:text-slate-400"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Right Action Controls */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="hidden">
+            <NetworkStatus compact={true} />
+          </div>
 
           {user && (
             <>
-              {/* Mode Toggle Pill (Hiring <-> Working) */}
-              {role !== 'ADMIN' && (
-                <button
-                  onClick={handleToggleRole}
-                  title="Switch between Hiring (Post Tasks) and Working (Find Jobs)"
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all active:scale-95 ${
-                    role === 'REQUESTER'
-                      ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
-                      : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                  }`}
+              {/* Role Switcher for Approved Worker */}
+              {role !== 'ADMIN' && isWorkerApproved && (
+                <div
+                  className="relative p-0.5 bg-purple-50 border border-purple-200 rounded-full flex items-center shadow-2xs"
+                  title="Switch between Hiring and Working mode"
                 >
-                  <ArrowLeftRight className="w-3 h-3" />
-                  <span>{role === 'REQUESTER' ? 'Hiring' : 'Working'}</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectRole('REQUESTER')}
+                    className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black transition-all ${
+                      role === 'REQUESTER'
+                        ? 'bg-[#5e17eb] text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <ShoppingBag className="w-3 h-3" />
+                    <span className="hidden md:inline">Hire</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectRole('WORKER')}
+                    className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black transition-all ${
+                      role === 'WORKER'
+                        ? 'bg-[#5e17eb] text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <Zap className="w-3 h-3 fill-current" />
+                    <span className="hidden md:inline">Earn</span>
+                  </button>
+                </div>
               )}
 
-              {role === 'ADMIN' && (
-                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-800 border border-purple-200">
-                  Admin
-                </span>
+              {/* Status for Unapproved User: Verification Pending vs Become Worker */}
+              {role !== 'ADMIN' && !isWorkerApproved && workerStatus.status === 'PENDING' && (
+                <Link
+                  to="/requester/profile"
+                  className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-bold transition-all shadow-2xs"
+                  title="Your application is awaiting physical verification"
+                >
+                  <Clock className="w-3 h-3 text-amber-600" />
+                  <span>Pending</span>
+                </Link>
               )}
 
-              {/* Wallet Balance Pill */}
+              {role !== 'ADMIN' && !isWorkerApproved && workerStatus.status !== 'PENDING' && (
+                <Link
+                  to="/requester/profile?apply=worker"
+                  className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-full bg-purple-50 hover:bg-purple-100 text-[#5e17eb] border border-purple-200 text-xs font-bold transition-all shadow-2xs"
+                  title="Apply to become a verified helper"
+                >
+                  <Sparkles className="w-3 h-3 text-[#5e17eb]" />
+                  <span>Become Worker</span>
+                </Link>
+              )}
+
+              {/* My Helpers Shortcut (for Requesters) */}
+              {role === 'REQUESTER' && (
+                <Link
+                  to="/requester/saved-workers"
+                  className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white hover:bg-rose-50 text-slate-700 hover:text-rose-600 border border-purple-100 text-xs font-bold transition-all shadow-2xs"
+                  title="My Preferred Workers"
+                >
+                  <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500/30" />
+                  <span>My Helpers</span>
+                </Link>
+              )}
+
+              {/* Wallet Balance Pill matching Image 1 */}
               <Link
                 to={role === 'WORKER' ? '/worker/wallet' : '/requester/wallet'}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold border border-slate-200 transition-colors"
-                title="Simulated Wallet"
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-50/70 hover:bg-purple-100/70 text-[#170836] text-xs font-black border border-purple-200/80 shadow-2xs transition-all"
+                title="Wallet Balance"
               >
-                <Wallet className="w-3.5 h-3.5 text-brand-600" />
-                <span>₹{Number(wallet?.balance || 0).toFixed(0)}</span>
+                <div className="w-4 h-4 rounded-full bg-[#5e17eb] flex items-center justify-center text-white">
+                  <Wallet className="w-2.5 h-2.5" />
+                </div>
+                <span className="font-mono tracking-tight font-extrabold">
+                  ₹{Number(wallet?.balance || 0).toFixed(0)}
+                </span>
               </Link>
 
-              {/* User Profile */}
-              <Link
-                to={role === 'WORKER' ? '/worker/profile' : '/requester/profile'}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-brand-50 text-slate-700 hover:text-brand-600 flex items-center justify-center border border-slate-200 transition-colors"
-                title="Profile"
+              {/* Notification Bell with Badge matching Image 1 & 2 */}
+              <button
+                type="button"
+                className="relative p-1.5 rounded-full text-slate-600 hover:bg-purple-50 transition-colors"
+                title="Notifications"
               >
-                <User className="w-4 h-4" />
+                <Bell className="w-4 h-4 text-slate-700" />
+                <span className="absolute 1 top-1 right-1 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white"></span>
+              </button>
+
+              {/* User Avatar Circle matching Image 1 & 2 */}
+              <Link
+                to={role === 'WORKER' ? '/worker/profile' : role === 'ADMIN' ? '/admin/profile' : '/requester/profile'}
+                className="relative w-8 h-8 rounded-full bg-gradient-to-tr from-[#1e084a] via-[#3b0764] to-[#7c3aed] text-white font-bold text-xs flex items-center justify-center shadow-2xs ring-2 ring-purple-200 hover:ring-[#5e17eb] transition-all"
+                title="User Profile"
+              >
+                {profile?.name ? profile.name.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
+                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></span>
               </Link>
             </>
           )}
@@ -106,7 +181,7 @@ export function Header() {
           {!user && (
             <Link
               to="/login"
-              className="bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-xs transition-colors"
+              className="bg-[#5e17eb] hover:bg-[#5013ca] text-white text-xs font-bold px-4 py-2 rounded-full shadow-xs transition-all active:scale-95"
             >
               Sign In
             </Link>

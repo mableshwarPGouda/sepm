@@ -56,8 +56,8 @@ export function OtpInputBoxes({
   };
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-center gap-3" onPaste={handlePaste}>
+    <div className="space-y-4">
+      <div className="flex items-center justify-center gap-3 sm:gap-4" onPaste={handlePaste}>
         {[0, 1, 2, 3].map((idx) => (
           <input
             key={idx}
@@ -71,10 +71,10 @@ export function OtpInputBoxes({
             value={digits[idx]}
             onChange={(e) => handleChange(idx, e.target.value)}
             onKeyDown={(e) => handleKeyDown(idx, e)}
-            className={`w-14 h-16 text-center text-3xl font-extrabold font-mono rounded-xl border-2 outline-none shadow-sm transition-all ${
+            className={`w-14 sm:w-16 h-18 sm:h-20 text-center text-3xl sm:text-4xl font-black font-mono rounded-2xl border-2 outline-none shadow-sm transition-all ${
               hasError
-                ? 'border-red-500 bg-red-50 text-red-950 animate-shake'
-                : 'border-slate-300 focus:border-brand-600 focus:ring-4 focus:ring-brand-500/20 bg-white text-slate-900'
+                ? 'border-red-500 bg-red-50 text-red-950 animate-shake ring-4 ring-red-500/20'
+                : 'border-slate-300 focus:border-slate-950 focus:ring-4 focus:ring-slate-950/10 bg-white text-slate-950'
             } disabled:opacity-50 disabled:bg-slate-100`}
           />
         ))}
@@ -82,8 +82,8 @@ export function OtpInputBoxes({
 
       {attemptCount > 0 && attemptCount < 3 && (
         <div className="text-center">
-          <span className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full">
-            ⚠️ Attempt {attemptCount} of 3 used ({3 - attemptCount} remaining)
+          <span className="text-xs font-black text-amber-800 bg-amber-50 border border-amber-300 px-3.5 py-1.5 rounded-full inline-flex items-center gap-1.5">
+            ⚠️ Attempt {attemptCount} of 3 used ({3 - attemptCount} left before dispute)
           </span>
         </div>
       )}

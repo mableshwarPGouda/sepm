@@ -18,6 +18,7 @@ import { ActiveJobScreen } from './pages/ActiveJobScreen';
 import { MyBidsScreen } from './pages/MyBidsScreen';
 import { WalletScreen } from './pages/WalletScreen';
 import { ProfileScreen } from './pages/ProfileScreen';
+import { SavedWorkersScreen } from './pages/SavedWorkersScreen';
 import { AdminDisputesScreen } from './pages/AdminDisputesScreen';
 
 function RootRedirector() {
@@ -59,7 +60,7 @@ function NotFound() {
 export function App() {
   return (
     <BrowserRouter>
-      <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 pb-16 sm:pb-0">
+      <div className="min-h-screen flex flex-col bg-[#f6f5fc] text-slate-900 pb-36 sm:pb-36">
         {/* Global Navigation Header */}
         <Header />
 
@@ -95,6 +96,14 @@ export function App() {
               element={
                 <ProtectedRoute allowedRoles={['REQUESTER', 'ADMIN']}>
                   <RequesterTaskDetailScreen />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/requester/saved-workers"
+              element={
+                <ProtectedRoute allowedRoles={['REQUESTER', 'ADMIN']}>
+                  <SavedWorkersScreen />
                 </ProtectedRoute>
               }
             />

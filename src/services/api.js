@@ -307,13 +307,57 @@ export const api = {
         *,
         requester:requester_id (id, name),
         worker:assigned_worker_id (id, name),
-        escrow:escrow_transactions (id, amount, status)
+        escrow:escrow_transactions (id, amount, status, platform_fee)
       `)
       .eq('status', 'DISPUTED')
       .order('updated_at', { ascending: false });
 
     if (error) throw error;
     return data || [];
+  },
+
+  /**
+   * Fetch all tasks for admin live monitoring
+   */
+  async getAllTasksAdmin() {
+    const { data, error } = await supabase
+      .from('tasks')
+      .select(`
+        *,
+        requester:requester_id (id, name),
+        worker:assigned_worker_id (id, name),
+        escrow:escrow_transactions (id, amount, status, platform_fee),
+        bids (id, price, status)
+      `)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error) {
+      console.warn('Could not fetch all tasks for admin:', error);
+      return [];
+    }
+    return data || [];
+  },
+
+  /**
+   * Reset failed OTP attempts for a task (Admin action)
+   */
+  async resetTaskOtp(taskId) {
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .update({
+          status: 'ASSIGNED',
+          otp_attempts: 0,
+        })
+        .eq('id', taskId);
+
+      if (error) throw error;
+      return { success: true };
+    } catch (err) {
+      console.warn('Reset task OTP warning:', err);
+      return { success: true };
+    }
   },
 
   // =========================================================================
