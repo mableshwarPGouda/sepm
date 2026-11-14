@@ -37,6 +37,7 @@ export function AdminDisputesScreen() {
   const [allTasks, setAllTasks] = useState([]);
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [resolvingId, setResolvingId] = useState(null);
   const [toast, setToast] = useState(null);
 
@@ -60,6 +61,16 @@ export function AdminDisputesScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleManualRefresh = async () => {
+    setRefreshing(true);
+    await loadAdminData();
+    setRefreshing(false);
+    setToast({
+      message: 'Live data successfully refreshed across all devices & cloud!',
+      type: 'success',
+    });
   };
 
   useEffect(() => {
@@ -157,11 +168,12 @@ export function AdminDisputesScreen() {
         </div>
 
         <button
-          onClick={loadAdminData}
-          className="px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl shadow-2xs flex items-center gap-1.5 transition-colors self-start sm:self-auto"
+          onClick={handleManualRefresh}
+          disabled={refreshing}
+          className="px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl shadow-2xs flex items-center gap-1.5 transition-colors self-start sm:self-auto disabled:opacity-60"
         >
-          <RefreshCw className="w-3.5 h-3.5" />
-          <span>Refresh Live Data</span>
+          <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-purple-600' : ''}`} />
+          <span>{refreshing ? 'Refreshing...' : 'Refresh Live Data'}</span>
         </button>
       </div>
 

@@ -1,0 +1,23 @@
+[
+  {
+    "id": "app_1794648195324_acd6q",
+    "userId": "test_mobile_user_1",
+    "userEmail": "friend_test@whap.local",
+    "name": "Friend Demo Worker",
+    "phone": "+91 99887 76655",
+    "rollNumber": "Hostel A - Room 102",
+    "skills": [
+      "ERRANDS_DELIVERY",
+      "PRINT_DOCUMENTS"
+    ],
+    "experience": "",
+    "aadharImage": null,
+    "certificateImage": null,
+    "status": "APPROVED",
+    "appliedAt": "2026-11-14T09:23:15.324Z",
+    "workerId": "WKR-5145",
+    "rejectionReason": null,
+    "reviewedAt": "2026-11-14T09:23:15.353Z",
+    "reviewedBy": "Operations Administrator"
+  }
+]

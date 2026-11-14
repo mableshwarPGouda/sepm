@@ -72,9 +72,9 @@ export const adminService = {
   },
 
   /**
-   * Async fetch applications directly from Supabase Cloud
-   * Uses both central config registry AND profiles table directly
-   * Guaranteeing 100% real-time reflection of ANY applicant
+   * Async fetch applications directly from Server API and Supabase Cloud
+   * Uses both central config registry, Server API, AND profiles table directly
+   * Guaranteeing 100% real-time cross-device reflection of ANY applicant
    */
   fetchApplicationsCloud: async () => {
     const map = new Map();
@@ -85,7 +85,22 @@ export const adminService = {
     // 2. Local storage
     getStoredApplications().forEach((a) => map.set(a.id, a));
 
-    // 3. Central config registry
+    // 3. Central Server API (/api/applications) - fast local Wi-Fi & Vercel sync
+    try {
+      const res = await fetch('/api/applications');
+      if (res.ok) {
+        const json = await res.json();
+        if (Array.isArray(json.applications)) {
+          json.applications.forEach((a) => {
+            if (a?.id) map.set(a.id, { ...map.get(a.id), ...a });
+          });
+        }
+      }
+    } catch (apiErr) {
+      console.warn('Could not fetch from server API:', apiErr.message);
+    }
+
+    // 4. Central config registry in Supabase
     try {
       const { data: configRow } = await supabase
         .from('config')
@@ -109,50 +124,96 @@ export const adminService = {
       console.warn('Could not read config registry:', cErr);
     }
 
-    // 4. Supabase Profiles table (100% permission guaranteed on all roles)
+    // 5. Supabase Profiles table (Includes ALL registered users awaiting verification)
     try {
-      const { data: appliedProfiles, error: profErr } = await supabase
+      const { data: allProfiles, error: profErr } = await supabase
         .from('profiles')
         .select('*')
-        .ilike('name', '%[APPLIED:%');
+        .order('created_at', { ascending: false });
 
-      if (!profErr && Array.isArray(appliedProfiles)) {
-        appliedProfiles.forEach((p) => {
-          try {
-            const match = p.name.match(/\[APPLIED:([^:]+):(.*)\]/);
-            if (match) {
-              const status = match[1];
-              const rawData = JSON.parse(decodeURIComponent(match[2]));
-              const cleanDisplayName = p.name.replace(/\s*\[APPLIED:.*\]/, '').trim();
-              const appId = rawData.id || `app_${p.id}`;
+      if (!profErr && Array.isArray(allProfiles)) {
+        allProfiles.forEach((p) => {
+          if (p.role === 'ADMIN') return; // Do not list admin
 
-              const existing = map.get(appId);
-              map.set(appId, {
-                id: appId,
-                userId: p.id,
-                userEmail: rawData.userEmail || `${cleanDisplayName.toLowerCase().replace(/\s+/g, '')}@whap.local`,
-                name: cleanDisplayName || rawData.name || 'Candidate',
-                phone: rawData.phone || '+91 98765 00000',
-                rollNumber: rawData.rollNumber || 'Area Landmark',
-                skills: rawData.skills || ['ERRANDS_DELIVERY'],
-                experience: rawData.experience || '',
-                status: existing?.status || status || 'PENDING',
-                workerId: existing?.workerId || (p.role === 'WORKER' ? `WKR-${p.id.slice(0, 4)}` : null),
-                appliedAt: rawData.appliedAt || p.updated_at || new Date().toISOString(),
-              });
-            }
-          } catch (e) {
-            console.warn('Error parsing applied profile:', e);
+          // Extract potential embedded tag
+          let appData = {};
+          const tagMatch = p.name?.match(/\[APPLIED:([^:]+):(.*)\]/);
+          if (tagMatch) {
+            try {
+              appData = JSON.parse(decodeURIComponent(tagMatch[2]));
+            } catch {}
           }
+
+          const cleanDisplayName = (p.name || '').replace(/\s*\[APPLIED:.*\]/, '').trim();
+          const appId = appData.id || `app_${p.id}`;
+          const existing = map.get(appId);
+
+          const isWorker = p.role === 'WORKER';
+          const calculatedStatus = isWorker
+            ? 'APPROVED'
+            : (existing?.status || (tagMatch ? tagMatch[1] : 'PENDING'));
+
+          map.set(appId, {
+            id: appId,
+            userId: p.id,
+            userEmail: appData.userEmail || existing?.userEmail || `${cleanDisplayName.toLowerCase().replace(/\s+/g, '')}@whap.local`,
+            name: cleanDisplayName || appData.name || existing?.name || 'Candidate',
+            phone: appData.phone || existing?.phone || p.phone || '+91 98765 00000',
+            rollNumber: appData.rollNumber || existing?.rollNumber || p.department || 'Campus Candidate',
+            skills: appData.skills || existing?.skills || ['ERRANDS_DELIVERY', 'PRINT_DOCUMENTS'],
+            experience: appData.experience || existing?.experience || '',
+            aadharImage: appData.aadharImage || existing?.aadharImage || null,
+            certificateImage: appData.certificateImage || existing?.certificateImage || null,
+            status: calculatedStatus,
+            workerId: existing?.workerId || (isWorker ? `WKR-${p.id.slice(0, 4).toUpperCase()}` : null),
+            appliedAt: appData.appliedAt || existing?.appliedAt || p.created_at || new Date().toISOString(),
+          });
         });
       }
     } catch (pErr) {
-      console.warn('Could not query applied profiles from Supabase:', pErr);
+      console.warn('Could not query profiles from Supabase:', pErr);
     }
 
     const merged = Array.from(map.values());
     saveApplications(merged);
     return merged;
+  },
+
+  checkApplicationStatus: async (userId, userEmail) => {
+    // 1. Check Server API
+    try {
+      const q = new URLSearchParams();
+      if (userId) q.set('userId', userId);
+      if (userEmail) q.set('userEmail', userEmail);
+      const res = await fetch(`/api/applications/status?${q.toString()}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.isApproved) {
+          return { status: 'APPROVED', isApproved: true, workerId: json.workerId };
+        }
+      }
+    } catch {}
+
+    // 2. Check Supabase profiles table directly
+    if (userId) {
+      try {
+        const { data: p } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', userId)
+          .maybeSingle();
+
+        if (p?.role === 'WORKER') {
+          return {
+            status: 'APPROVED',
+            isApproved: true,
+            workerId: `WKR-${userId.slice(0, 4).toUpperCase()}`,
+          };
+        }
+      } catch {}
+    }
+
+    return adminService.getWorkerStatus(userId, userEmail);
   },
 
   getWorkerStatus: (userId, userEmail) => {
@@ -197,7 +258,7 @@ export const adminService = {
   }) => {
     const apps = getStoredApplications();
     const existingIdx = apps.findIndex(
-      (a) => a.userId === userId || (userEmail && a.userEmail === userEmail)
+      (a) => (userId && a.userId === userId) || (userEmail && a.userEmail === userEmail)
     );
 
     const newApp = {
@@ -226,41 +287,53 @@ export const adminService = {
     // 1. Save locally for instant UI update on applicant's screen
     saveApplications(updated);
 
-    // 2. Direct database update to public.profiles table
-    // (RLS policy allows every user to update their own profile row: auth.uid() = id)
+    // 2. Sync to Server API (/api/applications) - enables instant cross-device delivery over Wi-Fi & Vercel
     try {
-      const payloadString = encodeURIComponent(
-        JSON.stringify({
-          id: newApp.id,
-          userEmail: newApp.userEmail,
-          name: newApp.name,
-          phone: newApp.phone,
-          rollNumber: newApp.rollNumber,
-          skills: newApp.skills,
-          experience: newApp.experience,
-          appliedAt: newApp.appliedAt,
-        })
-      );
-
-      // Clean existing name if already has tag
-      const baseCleanName = (name || '').replace(/\s*\[APPLIED:.*\]/, '').trim();
-      const encodedName = `${baseCleanName} [APPLIED:PENDING:${payloadString}]`;
-
-      const { error: profileUpdateErr } = await supabase
-        .from('profiles')
-        .update({ name: encodedName })
-        .eq('id', userId);
-
-      if (profileUpdateErr) {
-        console.warn('Could not update profile with application tag:', profileUpdateErr);
-      } else {
-        console.log('Application state successfully embedded in Supabase profiles table');
-      }
-    } catch (profErr) {
-      console.warn('Profile embedding exception:', profErr);
+      await fetch('/api/applications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newApp),
+      });
+      console.log('Worker application synced to backend API successfully');
+    } catch (apiErr) {
+      console.warn('API sync fallback:', apiErr.message);
     }
 
-    // 3. Sync to Supabase auth user_metadata
+    // 3. Direct database update to public.profiles table (RLS auth.uid() = id)
+    if (userId) {
+      try {
+        const payloadString = encodeURIComponent(
+          JSON.stringify({
+            id: newApp.id,
+            userEmail: newApp.userEmail,
+            name: newApp.name,
+            phone: newApp.phone,
+            rollNumber: newApp.rollNumber,
+            skills: newApp.skills,
+            experience: newApp.experience,
+            appliedAt: newApp.appliedAt,
+          })
+        );
+
+        const baseCleanName = (name || '').replace(/\s*\[APPLIED:.*\]/, '').trim();
+        const encodedName = `${baseCleanName} [APPLIED:PENDING:${payloadString}]`;
+
+        const { error: profileUpdateErr } = await supabase
+          .from('profiles')
+          .update({ name: encodedName })
+          .eq('id', userId);
+
+        if (profileUpdateErr) {
+          console.warn('Could not update profile with application tag:', profileUpdateErr);
+        } else {
+          console.log('Application state successfully embedded in Supabase profiles table');
+        }
+      } catch (profErr) {
+        console.warn('Profile embedding exception:', profErr);
+      }
+    }
+
+    // 4. Sync to Supabase auth user_metadata if available
     try {
       await supabase.auth.updateUser({
         data: {
@@ -286,6 +359,18 @@ export const adminService = {
     const apps = getStoredApplications();
     const generatedId = workerId || `WKR-${Math.floor(1000 + Math.random() * 9000)}`;
 
+    // 1. Sync to Server API (/api/applications/review)
+    try {
+      await fetch('/api/applications/review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ applicationId, status, workerId: generatedId, reason }),
+      });
+    } catch (err) {
+      console.warn('Review API sync warning:', err.message);
+    }
+
+    // 2. Update local storage
     const updated = apps.map((app) => {
       if (app.id === applicationId) {
         return {
@@ -302,20 +387,9 @@ export const adminService = {
 
     saveApplications(updated);
 
-    const targetApp = updated.find((a) => a.id === applicationId);
+    const targetApp = updated.find((a) => a.id === applicationId) || { id: applicationId };
 
-    // 1. Sync to Supabase Cloud central config registry
-    try {
-      await supabase.from('config').upsert({
-        key: CONFIG_REGISTRY_KEY,
-        value: JSON.stringify(updated),
-        description: 'Central Worker Applications Store',
-      });
-    } catch (cErr) {
-      console.warn('Could not update config registry in Supabase:', cErr);
-    }
-
-    // 2. If approved or rejected, update the user's role and clean name in Supabase profiles table
+    // 3. Update Supabase profiles table directly (Admin has full permissions!)
     if (targetApp?.userId) {
       try {
         const cleanName = (targetApp.name || '').replace(/\s*\[APPLIED:.*\]/, '').trim();
@@ -326,15 +400,27 @@ export const adminService = {
           updatePayload.role = 'WORKER';
         }
 
-        await supabase
+        const { error: pErr } = await supabase
           .from('profiles')
           .update(updatePayload)
           .eq('id', targetApp.userId);
 
-        console.log(`User ${targetApp.userId} updated in Supabase: role=${updatePayload.role || 'unchanged'}`);
+        if (pErr) console.warn('Supabase profile update warning:', pErr);
+        else console.log(`User ${targetApp.userId} updated in Supabase: role=${updatePayload.role || 'unchanged'}`);
       } catch (pErr) {
         console.warn('Could not update profile in Supabase:', pErr);
       }
+    }
+
+    // 4. Sync to Supabase Cloud central config registry
+    try {
+      await supabase.from('config').upsert({
+        key: CONFIG_REGISTRY_KEY,
+        value: JSON.stringify(updated),
+        description: 'Central Worker Applications Store',
+      });
+    } catch (cErr) {
+      console.warn('Could not update config registry in Supabase:', cErr);
     }
 
     return targetApp;

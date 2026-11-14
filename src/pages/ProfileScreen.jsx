@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 
 export function ProfileScreen() {
-  const { user, profile, role, switchRole, logout, updateProfileDetails, workerStatus, isWorkerApproved } = useAuth();
+  const { user, profile, role, switchRole, logout, updateProfileDetails, workerStatus, isWorkerApproved, refreshUserData } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -54,6 +54,22 @@ export function ProfileScreen() {
   const [certPreview, setCertPreview] = useState(null);
   const [submittingApp, setSubmittingApp] = useState(false);
   const [appSuccessMessage, setAppSuccessMessage] = useState(false);
+
+  // Real-time polling: If applicant is pending, poll approval status every 2 seconds
+  // so the phone instantly unlocks the worker toggle the second Admin clicks "Approve"
+  useEffect(() => {
+    if (!user?.id || isWorkerApproved) return;
+    const pollInterval = setInterval(async () => {
+      try {
+        const latest = await adminService.checkApplicationStatus(user.id, user.email);
+        if (latest?.isApproved) {
+          if (refreshUserData) await refreshUserData();
+          window.dispatchEvent(new Event('whap_worker_apps_updated'));
+        }
+      } catch {}
+    }, 2000);
+    return () => clearInterval(pollInterval);
+  }, [user?.id, user?.email, isWorkerApproved, refreshUserData]);
 
   // Check if query param ?apply=worker was passed
   useEffect(() => {
