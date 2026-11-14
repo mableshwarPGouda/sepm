@@ -141,7 +141,7 @@ export function ProfileScreen() {
 
     setSubmittingApp(true);
     try {
-      adminService.submitWorkerApplication({
+      await adminService.submitWorkerApplication({
         userId: user?.id,
         userEmail: user?.email,
         name: profile?.name || user?.email,
