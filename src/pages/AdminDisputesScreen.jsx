@@ -64,7 +64,7 @@ export function AdminDisputesScreen() {
 
   useEffect(() => {
     loadAdminData();
-    const interval = setInterval(loadAdminData, 4000);
+    const interval = setInterval(loadAdminData, 2000);
     return () => clearInterval(interval);
   }, []);
 
